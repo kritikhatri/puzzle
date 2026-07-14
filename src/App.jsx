@@ -1,6 +1,190 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 
+// ==========================================
+// Web Audio Synthesized Sound Effects Engine
+// ==========================================
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+  }
+
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playTick() {
+    if (this.muted) return;
+    this.init();
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(900, this.ctx.currentTime); // High pitch tick
+    
+    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.06);
+  }
+
+  playShutter() {
+    if (this.muted) return;
+    this.init();
+    
+    // Shutter noise burst
+    const bufferSize = this.ctx.sampleRate * 0.2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1000, this.ctx.currentTime);
+    
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+    
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+    
+    // Mechanical camera slap click
+    const osc = this.ctx.createOscillator();
+    const clickGain = this.ctx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
+    
+    clickGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+    
+    osc.connect(clickGain);
+    clickGain.connect(this.ctx.destination);
+    
+    noise.start();
+    osc.start();
+    noise.stop(this.ctx.currentTime + 0.2);
+    osc.stop(this.ctx.currentTime + 0.08);
+  }
+
+  playHeartBurst() {
+    if (this.muted) return;
+    this.init();
+    
+    const playSparkle = (delay, freq) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.4, this.ctx.currentTime + delay + 0.15);
+      
+      gain.gain.setValueAtTime(0.0, this.ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.06, this.ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.15);
+      
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      osc.start(this.ctx.currentTime + delay);
+      osc.stop(this.ctx.currentTime + delay + 0.15);
+    };
+    
+    playSparkle(0, 1100);
+    playSparkle(0.04, 1400);
+    playSparkle(0.08, 1200);
+    playSparkle(0.12, 1700);
+  }
+
+  playSnap() {
+    if (this.muted) return;
+    this.init();
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(760, this.ctx.currentTime + 0.1);
+    
+    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.12);
+  }
+
+  playVictory() {
+    if (this.muted) return;
+    this.init();
+    
+    const freqs = [523.25, 659.25, 783.99, 1046.50]; // Major arpeggio C5 - E5 - G5 - C6
+    
+    freqs.forEach((freq, idx) => {
+      const delay = idx * 0.1;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+      
+      gain.gain.setValueAtTime(0.0, this.ctx.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + 0.35);
+      
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      
+      osc.start(this.ctx.currentTime + delay);
+      osc.stop(this.ctx.currentTime + delay + 0.35);
+    });
+  }
+
+  playFly() {
+    if (this.muted) return;
+    this.init();
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(550, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.85);
+    
+    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.85);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.85);
+  }
+}
+
+const soundEngine = new SoundEngine();
+
 export default function App() {
   // State for webcam stream
   const [stream, setStream] = useState(null);
@@ -26,7 +210,23 @@ export default function App() {
   // Film strip photos
   const [photos, setPhotos] = useState([]);
 
-  // Long distance sharing state
+  // Audio state
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Gameplay Mode state
+  const [puzzleMode, setPuzzleMode] = useState('auto'); // 'auto' | 'manual'
+  const [draggedPieceId, setDraggedPieceId] = useState(null);
+  const [solvingTimer, setSolvingTimer] = useState(0);
+
+  // Custom Caption modal state
+  const [activeEditingPhotoIndex, setActiveEditingPhotoIndex] = useState(null);
+  const [captionInputText, setCaptionInputText] = useState('');
+
+  // Cursor sparkle trail particles
+  const [trailParticles, setTrailParticles] = useState([]);
+  const lastSpawnRef = useRef({ x: 0, y: 0 });
+
+  // Geolocation & Long distance sharing state
   const [roomId, setRoomId] = useState('');
   const [isRoomActive, setIsRoomActive] = useState(false);
   const [userName, setUserName] = useState('Me');
@@ -37,12 +237,21 @@ export default function App() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Drag and drop mechanics refs
+  const dragStartRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+  const piecesRef = useRef(pieces);
+  const draggedPieceIdRef = useRef(draggedPieceId);
+
+  // Local snapped pieces sparkle bursts
+  const [localSparkles, setLocalSparkles] = useState([]);
+
   // Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const stageRef = useRef(null);
   const timersRef = useRef([]);
+  const gameTimerIntervalRef = useRef(null);
 
   // Geolocation Haversine calculator
   const getHaversineDistance = (coords1, coords2) => {
@@ -58,6 +267,24 @@ export default function App() {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
+  };
+
+  // Keep refs up-to-date for stable callback closures
+  useEffect(() => {
+    piecesRef.current = pieces;
+  }, [pieces]);
+
+  useEffect(() => {
+    draggedPieceIdRef.current = draggedPieceId;
+  }, [draggedPieceId]);
+
+  // Audio controls toggle
+  const toggleMute = () => {
+    setIsMuted(prev => {
+      const next = !prev;
+      soundEngine.muted = next;
+      return next;
+    });
   };
 
   // Initialize camera stream
@@ -129,7 +356,6 @@ export default function App() {
               setIsSyncing(false);
             },
             async () => {
-              // Geolocation denied fallback
               const fallbackDist = `${Math.floor(Math.random() * 2500) + 400} km apart 🎀`;
               const updatedData = {
                 ...data,
@@ -151,7 +377,6 @@ export default function App() {
             }
           );
         } else {
-          // No geolocation support
           const fallbackDist = `${Math.floor(Math.random() * 2500) + 400} km apart 🎀`;
           const updatedData = {
             ...data,
@@ -197,11 +422,9 @@ export default function App() {
     setShowShareModal(true);
     setConnectedSince(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
-    // Update browser URL query string without reloading page
     const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + `?room=${code}`;
     window.history.pushState({ path: newurl }, '', newurl);
 
-    // Setup coordinates if geolocation allowed
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -255,7 +478,7 @@ export default function App() {
     }
   };
 
-  // Poll shared database room on schedule
+  // Poll shared database room
   useEffect(() => {
     if (!isRoomActive || !roomId) return;
 
@@ -266,18 +489,15 @@ export default function App() {
         if (res.ok && isSubscribed) {
           const data = await res.json();
           
-          // Synchronize photos
-          if (data.photos && data.photos.length !== photos.length) {
+          if (data.photos && JSON.stringify(data.photos) !== JSON.stringify(photos)) {
             setPhotos(data.photos);
             
-            // Notify if partner added a photo
             const lastPhoto = data.photos[data.photos.length - 1];
             if (lastPhoto && lastPhoto.sender !== userName && data.photos.length > photos.length) {
               alert(`${data.partnerName || 'Your partner'} captured a new photo! 💖`);
             }
           }
 
-          // Synchronize partner metadata
           if (data.partnerName && data.partnerName !== userName && partnerName !== data.partnerName) {
             setPartnerName(data.partnerName);
             setIsConnected(true);
@@ -322,17 +542,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync stream to video element when stream or hasCamera changes
-  useEffect(() => {
-    if (hasCamera && stream && videoRef.current && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [hasCamera, stream]);
-
   // Clear all timeouts
   const clearAllTimers = () => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    if (gameTimerIntervalRef.current) {
+      clearInterval(gameTimerIntervalRef.current);
+      gameTimerIntervalRef.current = null;
+    }
   };
 
   // Keyboard shortcut listener (Spacebar)
@@ -367,11 +584,13 @@ export default function App() {
     if (photos.length >= 3) return;
     clearAllTimers();
     setCountdown(3);
+    soundEngine.playTick(); // Synthesized count click
 
     const tick = (count) => {
       if (count > 0) {
         const timer = setTimeout(() => {
           setCountdown(count - 1);
+          soundEngine.playTick(); // Tick click
           tick(count - 1);
         }, 1000);
         timersRef.current.push(timer);
@@ -384,7 +603,7 @@ export default function App() {
     tick(3);
   };
 
-  // Desaturate and boost contrast for Black & White film style
+  // Desaturate and boost contrast for B&W film style
   const applyBlackAndWhiteFilter = (canvas) => {
     const ctx = canvas.getContext('2d');
     const imgData = ctx.getImageData(0, 0, 480, 360);
@@ -394,33 +613,31 @@ export default function App() {
       const g = data[i + 1];
       const b = data[i + 2];
       
-      // Grayscale conversion
       let gray = 0.299 * r + 0.587 * g + 0.114 * b;
       
-      // Boost contrast (factor of 1.4)
       const factor = 1.4;
       gray = factor * (gray - 128) + 128;
       
-      // Clamp values
       gray = Math.max(0, Math.min(255, gray));
       
-      data[i] = gray;     // R
-      data[i + 1] = gray; // G
-      data[i + 2] = gray; // B
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
     }
     ctx.putImageData(imgData, 0, 0);
   };
 
   // Capture frame to canvas
   const performCapture = () => {
-    // 1. Flash effect
+    soundEngine.playShutter(); // Synthesized Shutter click sound
+    soundEngine.playHeartBurst(); // Synthesized sparkle sound
+
     setIsFlashActive(true);
     const flashTimer = setTimeout(() => {
       setIsFlashActive(false);
-    }, 600); // 600ms allows heart sparkles burst to overlay
+    }, 600);
     timersRef.current.push(flashTimer);
 
-    // 2. Draw image on hidden canvas (480x360)
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -428,13 +645,11 @@ export default function App() {
     if (hasCamera && videoRef.current) {
       ctx.clearRect(0, 0, 480, 360);
       ctx.save();
-      // Mirror frame to match mirrored live view
       ctx.translate(480, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(videoRef.current, 0, 0, 480, 360);
       ctx.restore();
       
-      // Apply B&W film filter
       applyBlackAndWhiteFilter(canvas);
       
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -445,7 +660,6 @@ export default function App() {
       img.onload = () => {
         ctx.clearRect(0, 0, 480, 360);
         
-        // Draw image cover (crop and center to fit 480x360)
         const canvasAspect = 480 / 360;
         const imgAspect = img.width / img.height;
         let sx, sy, sWidth, sHeight;
@@ -463,8 +677,6 @@ export default function App() {
         }
         
         ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, 480, 360);
-        
-        // Apply B&W film filter on uploaded photo
         applyBlackAndWhiteFilter(canvas);
         
         const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -475,9 +687,57 @@ export default function App() {
     }
   };
 
+  // Sparkle burst effects at correct cell centers on snap
+  const triggerSinglePieceSparkle = (x, y) => {
+    const newSparkles = Array.from({ length: 6 }).map((_, i) => {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 50 + 35; // displacement
+      const dx = Math.cos(angle) * speed;
+      const dy = Math.sin(angle) * speed;
+      
+      return {
+        id: Date.now() + i + Math.random(),
+        x,
+        y,
+        dx,
+        dy,
+        symbol: i % 2 === 0 ? '❤️' : '✨',
+        size: Math.random() * 12 + 10
+      };
+    });
+    setLocalSparkles(prev => [...prev, ...newSparkles]);
+    
+    setTimeout(() => {
+      setLocalSparkles(prev => prev.filter(s => !newSparkles.find(ns => ns.id === s.id)));
+    }, 800);
+  };
+
+  // Cursor trailer mouse move handler
+  const handleMouseMove = (e) => {
+    const lastPos = lastSpawnRef.current;
+    const dist = Math.sqrt((e.clientX - lastPos.x) ** 2 + (e.clientY - lastPos.y) ** 2);
+    if (dist < 18) return; 
+
+    lastSpawnRef.current = { x: e.clientX, y: e.clientY };
+    
+    const newParticle = {
+      id: Date.now() + Math.random(),
+      x: e.clientX,
+      y: e.clientY,
+      symbol: Math.random() > 0.5 ? '🌸' : '✨',
+      size: Math.random() * 8 + 8,
+      rotation: Math.random() * 360
+    };
+    
+    setTrailParticles(prev => [...prev, newParticle].slice(-20)); // cap size
+    
+    setTimeout(() => {
+      setTrailParticles(prev => prev.filter(p => p.id !== newParticle.id));
+    }, 600);
+  };
+
   // Start puzzle shattering & snapping sequence
   const startPuzzlePhase = (imageSrc) => {
-    // Generate puzzle pieces
     const piecesList = [];
     for (let i = 0; i < 9; i++) {
       const row = Math.floor(i / 3);
@@ -502,28 +762,151 @@ export default function App() {
     setIsPuzzlePhase(true);
     setIsComplete(false);
 
-    // Staggered snapping sequence
-    piecesList.forEach((piece, index) => {
-      const snapTimer = setTimeout(() => {
-        setPieces((prev) =>
-          prev.map((p) => (p.id === piece.id ? { ...p, isSnapped: true } : p))
-        );
-      }, index * 100 + 200);
-      timersRef.current.push(snapTimer);
-    });
+    if (puzzleMode === 'auto') {
+      // Auto-snap staggered timers
+      piecesList.forEach((piece, index) => {
+        const snapTimer = setTimeout(() => {
+          setPieces((prev) =>
+            prev.map((p) => {
+              if (p.id === piece.id) {
+                soundEngine.playSnap(); // snap pop sound
+                triggerSinglePieceSparkle(piece.col * 160 + 80, piece.row * 120 + 60);
+                return { ...p, isSnapped: true };
+              }
+              return p;
+            })
+          );
+        }, index * 100 + 200);
+        timersRef.current.push(snapTimer);
+      });
 
-    // Check completion
-    const completeTimer = setTimeout(() => {
-      setIsComplete(true);
+      const completeTimer = setTimeout(() => {
+        setIsComplete(true);
+        soundEngine.playVictory(); // arpeggio chord arpeggios sound
+        
+        const transitionTimer = setTimeout(() => {
+          startFlyAnimation(imageSrc);
+        }, 1600);
+        timersRef.current.push(transitionTimer);
+      }, 9 * 100 + 400);
+      timersRef.current.push(completeTimer);
+    } else {
+      // Manual Mode: Setup game solving timer
+      setSolvingTimer(0);
+      if (gameTimerIntervalRef.current) clearInterval(gameTimerIntervalRef.current);
       
-      // Let user appreciate the completed puzzle, then fly to film strip slot
-      const transitionTimer = setTimeout(() => {
-        startFlyAnimation(imageSrc);
-      }, 1600);
-      timersRef.current.push(transitionTimer);
-    }, 9 * 100 + 400);
-    timersRef.current.push(completeTimer);
+      gameTimerIntervalRef.current = setInterval(() => {
+        setSolvingTimer(prev => prev + 1);
+      }, 1000);
+    }
   };
+
+  // Drag and drop event handlers
+  const handlePieceStartDrag = (pieceId, clientX, clientY) => {
+    if (isComplete || isFlying) return;
+    const piece = pieces.find(p => p.id === pieceId);
+    if (!piece || piece.isSnapped) return;
+    
+    setDraggedPieceId(pieceId);
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      offsetX: piece.scatteredX,
+      offsetY: piece.scatteredY
+    };
+  };
+
+  const handleGlobalMove = useCallback((clientX, clientY) => {
+    const pid = draggedPieceIdRef.current;
+    if (pid === null) return;
+    
+    const deltaX = clientX - dragStartRef.current.x;
+    const deltaY = clientY - dragStartRef.current.y;
+    
+    let newX = dragStartRef.current.offsetX + deltaX;
+    let newY = dragStartRef.current.offsetY + deltaY;
+    
+    newX = Math.max(-230, Math.min(230, newX));
+    newY = Math.max(-170, Math.min(170, newY));
+
+    setPieces(prev => prev.map(p => p.id === pid ? { ...p, scatteredX: newX, scatteredY: newY } : p));
+  }, []);
+
+  const handleGlobalEndDrag = useCallback(() => {
+    const pid = draggedPieceIdRef.current;
+    if (pid === null) return;
+    
+    const currentPieces = piecesRef.current;
+    const piece = currentPieces.find(p => p.id === pid);
+    if (piece) {
+      const dist = Math.sqrt(piece.scatteredX * piece.scatteredX + piece.scatteredY * piece.scatteredY);
+      if (dist < 30) {
+        // Snap locking
+        setPieces(prev => prev.map(p => p.id === pid ? { 
+          ...p, 
+          scatteredX: 0, 
+          scatteredY: 0, 
+          scatteredRotation: 0, 
+          isSnapped: true 
+        } : p));
+        
+        soundEngine.playSnap(); // snap pop
+        triggerSinglePieceSparkle(piece.col * 160 + 80, piece.row * 120 + 60);
+
+        const otherPiecesSnapped = currentPieces.filter(p => p.id !== pid).every(p => p.isSnapped);
+        if (otherPiecesSnapped) {
+          // Solved!
+          setIsComplete(true);
+          soundEngine.playVictory(); // arpeggio chord sound
+
+          // Clear timer interval
+          if (gameTimerIntervalRef.current) {
+            clearInterval(gameTimerIntervalRef.current);
+            gameTimerIntervalRef.current = null;
+          }
+          
+          const flyTimer = setTimeout(() => {
+            startFlyAnimation(capturedImage);
+          }, 1600);
+          timersRef.current.push(flyTimer);
+        }
+      }
+    }
+    
+    setDraggedPieceId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capturedImage]);
+
+  // Hook global drag event listeners
+  useEffect(() => {
+    if (draggedPieceId === null) return;
+
+    const onMouseMove = (e) => {
+      handleGlobalMove(e.clientX, e.clientY);
+    };
+    
+    const onTouchMove = (e) => {
+      if (e.touches && e.touches[0]) {
+        handleGlobalMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const onMouseUp = () => {
+      handleGlobalEndDrag();
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchend', onMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchend', onMouseUp);
+    };
+  }, [draggedPieceId, handleGlobalMove, handleGlobalEndDrag]);
 
   // Fly animation to film strip slot
   const startFlyAnimation = (imageSrc) => {
@@ -539,9 +922,9 @@ export default function App() {
       const dx = slotRect.left - stageRect.left;
       const dy = slotRect.top - stageRect.top;
       const scale = slotRect.width / stageRect.width;
-      const finalRotation = (Math.random() - 0.5) * 8; // Polaroid landing rotation
-      const offsetX = (Math.random() - 0.5) * 6; // -3px to +3px
-      const offsetY = (Math.random() - 0.5) * 10; // -5px to +5px
+      const finalRotation = (Math.random() - 0.5) * 8; 
+      const offsetX = (Math.random() - 0.5) * 6; 
+      const offsetY = (Math.random() - 0.5) * 10; 
 
       setFlyStyle({
         transform: `translate(${dx}px, ${dy}px) scale(${scale}) rotate(${finalRotation}deg)`,
@@ -552,6 +935,7 @@ export default function App() {
       });
 
       setIsFlying(true);
+      soundEngine.playFly(); // Sweep sliding sound
 
       const animationEndTimer = setTimeout(async () => {
         const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -562,13 +946,12 @@ export default function App() {
           rotation: finalRotation,
           offsetX,
           offsetY,
-          sender: userName
+          sender: userName,
+          customCaption: ''
         };
 
-        // If in a shared session, upload to kvdb.io
         if (isRoomActive && roomId) {
           try {
-            // Retrieve latest state first to prevent conflicts
             const checkRes = await fetch(`https://kvdb.io/puzzle_pb_2026/room_${roomId}`);
             let updatedPhotos = [];
             let latestData = {};
@@ -592,11 +975,9 @@ export default function App() {
             setPhotos(updatedPhotos);
           } catch (err) {
             console.error("Shared photo upload failed:", err);
-            // Fallback locally
             setPhotos(prev => [...prev, newPhoto]);
           }
         } else {
-          // Standard local photo save
           setPhotos(prev => [...prev, newPhoto]);
         }
 
@@ -606,11 +987,10 @@ export default function App() {
         setIsComplete(false);
         setCapturedImage(null);
         setFlyStyle({});
-        setUploadedImageSrc(null); // Clear fallback upload file
+        setUploadedImageSrc(null); 
       }, 820);
       timersRef.current.push(animationEndTimer);
     } else {
-      // Direct placement fallback
       const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const newPhoto = {
         src: imageSrc,
@@ -618,7 +998,8 @@ export default function App() {
         rotation: (Math.random() - 0.5) * 8,
         offsetX: (Math.random() - 0.5) * 6,
         offsetY: (Math.random() - 0.5) * 10,
-        sender: userName
+        sender: userName,
+        customCaption: ''
       };
       setPhotos(prev => [...prev, newPhoto]);
       setIsPuzzlePhase(false);
@@ -654,7 +1035,7 @@ export default function App() {
     }
   };
 
-  // Drag & drop handlers
+  // Drag & drop file handlers
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -673,11 +1054,50 @@ export default function App() {
     }
   };
 
+  // Trigger Caption Edit Input Dialog
+  const openCaptionEditor = (index) => {
+    const photo = photos[index];
+    if (!photo) return;
+    setActiveEditingPhotoIndex(index);
+    setCaptionInputText(photo.customCaption || `Shot #${index + 1} • ${photo.date}`);
+  };
+
+  // Save Custom Polaroid Caption and sync to database
+  const saveCustomCaption = async () => {
+    if (activeEditingPhotoIndex === null) return;
+    
+    setPhotos(prev => prev.map((p, idx) => idx === activeEditingPhotoIndex ? { ...p, customCaption: captionInputText } : p));
+    
+    if (isRoomActive && roomId) {
+      try {
+        const checkRes = await fetch(`https://kvdb.io/puzzle_pb_2026/room_${roomId}`);
+        if (checkRes.ok) {
+          const data = await checkRes.json();
+          const updatedPhotos = data.photos.map((p, idx) => 
+            idx === activeEditingPhotoIndex ? { ...p, customCaption: captionInputText } : p
+          );
+          const updatedData = {
+            ...data,
+            photos: updatedPhotos
+          };
+          await fetch(`https://kvdb.io/puzzle_pb_2026/room_${roomId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedData)
+          });
+        }
+      } catch (err) {
+        console.warn("Syncing custom caption failed:", err);
+      }
+    }
+    
+    setActiveEditingPhotoIndex(null);
+  };
+
   // Download film strip
   const downloadFilmStrip = async () => {
     if (photos.length < 3) return;
 
-    // Create 320x960 high-quality film strip canvas
     const canvas = document.createElement('canvas');
     canvas.width = 320;
     canvas.height = 960;
@@ -688,7 +1108,7 @@ export default function App() {
     ctx.fillRect(0, 0, 320, 960);
 
     // 2. Draw sprocket perforated holes
-    ctx.fillStyle = '#faf3ef'; // background warm cream cutout color
+    ctx.fillStyle = '#faf3ef'; 
     const drawSprocket = (x, y) => {
       const w = 10;
       const h = 16;
@@ -704,8 +1124,8 @@ export default function App() {
     };
 
     for (let y = 10; y < 960; y += 32) {
-      drawSprocket(12, y);  // Left side
-      drawSprocket(298, y); // Right side
+      drawSprocket(12, y);  
+      drawSprocket(298, y); 
     }
 
     // 3. Render 3 polaroid frames onto the canvas
@@ -721,44 +1141,35 @@ export default function App() {
           const cx = 160 + (photo.offsetX || 0);
           const cy = yOffset + (polaroidHeight / 2) + (photo.offsetY || 0);
           
-          // Apply rotation
           ctx.translate(cx, cy);
           ctx.rotate((photo.rotation * Math.PI) / 180);
 
-          // Polaroid Card shadow
           ctx.shadowColor = 'rgba(61, 43, 53, 0.25)';
           ctx.shadowBlur = 10;
           ctx.shadowOffsetX = 2;
           ctx.shadowOffsetY = 4;
 
-          // Polaroid frame white base card (warm cream color #faf8f5)
           ctx.fillStyle = '#fafaf8';
           ctx.fillRect(-90, -110, 180, 220); // 180x220px card
 
-          // Disable shadow for drawing photo
           ctx.shadowColor = 'transparent';
-
-          // Crop and Draw Captured Image: 4:3 image aspect
           ctx.drawImage(img, -80, -90, 160, 120);
 
-          // Draw index label on card (handwritten feel)
           ctx.fillStyle = '#3d2b35';
           ctx.font = 'italic bold 11px "Playfair Display", Georgia, serif';
           ctx.textAlign = 'center';
           ctx.fillText(`#${index + 1}`, 0, 70);
 
           // Draw Washi Tape corners
-          // TL tape
           ctx.save();
-          ctx.fillStyle = 'rgba(232, 160, 168, 0.75)'; // dusty rose
+          ctx.fillStyle = 'rgba(232, 160, 168, 0.75)'; 
           ctx.translate(-75, -100);
           ctx.rotate((-15 * Math.PI) / 180);
           ctx.fillRect(-20, -7, 40, 14);
           ctx.restore();
 
-          // BR tape
           ctx.save();
-          ctx.fillStyle = 'rgba(201, 182, 217, 0.75)'; // lavender
+          ctx.fillStyle = 'rgba(201, 182, 217, 0.75)'; 
           ctx.translate(75, 100);
           ctx.rotate((15 * Math.PI) / 180);
           ctx.fillRect(-20, -7, 40, 14);
@@ -766,11 +1177,13 @@ export default function App() {
 
           ctx.restore();
 
-          // Draw caption on the film strip (outside card rotation for readability)
-          ctx.fillStyle = '#faf3ef'; // warmer off-white caption
+          // Draw caption on the film strip
+          ctx.fillStyle = '#faf3ef'; 
           ctx.font = '600 11px "Plus Jakarta Sans", sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(`SHOT #${index + 1} • ${photo.date}`, 160, yOffset + 245);
+          
+          const captionText = photo.customCaption || `SHOT #${index + 1} • ${photo.date}`;
+          ctx.fillText(captionText.toUpperCase(), 160, yOffset + 245);
 
           resolve();
         };
@@ -778,13 +1191,12 @@ export default function App() {
       });
     };
 
-    // Sequentially process each polaroid
     await drawPolaroidCard(photos[0], 0, yOffsets[0]);
     await drawPolaroidCard(photos[1], 1, yOffsets[1]);
     await drawPolaroidCard(photos[2], 2, yOffsets[2]);
 
     // 4. Draw Footer Title
-    ctx.fillStyle = '#e8a0a8'; // dusty rose
+    ctx.fillStyle = '#e8a0a8'; 
     ctx.font = '900 14px "Playfair Display", Georgia, serif';
     ctx.textAlign = 'center';
     
@@ -801,7 +1213,6 @@ export default function App() {
       ctx.fillText(currentDate.toUpperCase(), 160, 918);
     }
 
-    // Download trigger
     const link = document.createElement('a');
     link.download = `photobooth-strip-${Date.now()}.png`;
     link.href = canvas.toDataURL('image/png');
@@ -820,7 +1231,6 @@ export default function App() {
     setFlyStyle({});
     setCountdown(null);
 
-    // If sharing room is active, clear photos in database too
     if (isRoomActive && roomId) {
       try {
         const res = await fetch(`https://kvdb.io/puzzle_pb_2026/room_${roomId}`);
@@ -852,7 +1262,6 @@ export default function App() {
     setPartnerName('');
     setIsConnected(false);
     setPhotos([]);
-    // Remove query parameter from URL without page reload
     const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
     window.history.pushState({ path: newurl }, '', newurl);
     initCamera();
@@ -868,19 +1277,44 @@ export default function App() {
   const snappedCount = pieces.filter((p) => p.isSnapped).length;
 
   return (
-    <div className="app-container">
+    <div className="app-container" onMouseMove={handleMouseMove}>
+      {/* Background Cursor trailer particles */}
+      {trailParticles.map(p => (
+        <span
+          key={p.id}
+          className="trail-sparkle-particle"
+          style={{
+            left: `${p.x}px`,
+            top: `${p.y}px`,
+            fontSize: `${p.size}px`,
+            transform: `translate(-50%, -50%) rotate(${p.rotation}deg)`,
+          }}
+        >
+          {p.symbol}
+        </span>
+      ))}
+
       <header>
+        {/* Sound toggle switch */}
+        <button 
+          className={`mute-toggle-btn ${isMuted ? 'muted' : ''}`} 
+          onClick={toggleMute}
+          title={isMuted ? "Unmute sounds 🔊" : "Mute sounds 🔇"}
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+
         <div className="title-wrapper">
           <h1 className="app-title">Puzzle Photobooth 🎀</h1>
           <div className="title-flourish">for us, shot together 🎀</div>
         </div>
         <p className="app-subtitle">
-          Shatter your expressions. Watch them snap back together into vintage black & white memories.
+          Shatter your expressions. Watch them snap back together into vintage B&W prints.
           <span className="keyboard-hint">Spacebar to Shoot</span>
         </p>
       </header>
 
-      {/* Sharing Session Controller Block */}
+      {/* Sharing Session Banner */}
       <section className="sharing-control-banner">
         {!isRoomActive ? (
           <button className="share-session-btn" onClick={startSharedRoom}>
@@ -921,7 +1355,7 @@ export default function App() {
           <div className="share-modal-box">
             <h3 className="modal-title">Share the Booth! 💖</h3>
             <p className="modal-desc">
-              Send this link to your partner! When they open it, their camera will connect, and you will interleave shots on the same film strip in real time.
+              Send this link to your partner! When they open it, their camera will connect, and you will interleave shots on the same film strip in real-time.
             </p>
             <div className="modal-link-box">
               {window.location.protocol + "//" + window.location.host + window.location.pathname + `?room=${roomId}`}
@@ -934,6 +1368,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Syncing Overlay */}
       {isSyncing && (
         <div className="syncing-overlay">
           <div className="sync-spinner">🌸</div>
@@ -941,11 +1376,33 @@ export default function App() {
         </div>
       )}
 
+      {/* Custom Polaroid Caption modal */}
+      {activeEditingPhotoIndex !== null && (
+        <div className="share-modal-backdrop">
+          <div className="share-modal-box">
+            <h3 className="modal-title">Write Polaroid Caption 📝🎀</h3>
+            <p className="modal-desc">Type a custom label or date for this photo card:</p>
+            <input 
+              type="text" 
+              className="caption-text-input"
+              value={captionInputText} 
+              onChange={(e) => setCaptionInputText(e.target.value)}
+              placeholder="e.g. best friends 💖"
+              maxLength={24}
+              autoFocus
+            />
+            <div className="modal-buttons" style={{ marginTop: '1.2rem' }}>
+              <button className="modal-btn-confirm" onClick={saveCustomCaption}>Save 💖</button>
+              <button className="modal-btn-cancel" onClick={() => setActiveEditingPhotoIndex(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="workspace">
         {/* Left Side: Camera & Viewport stage */}
         <section className="stage-panel">
           <div className="camera-bezel">
-            {/* Tiny camera LEDs */}
             <div className={`camera-lens-led ${hasCamera ? 'active' : ''} ${countdown !== null ? 'recording' : ''}`} />
             
             <div 
@@ -985,7 +1442,7 @@ export default function App() {
                 />
               )}
 
-              {/* Connecting to Webcam Spinner */}
+              {/* Connecting Webcam Spinner */}
               {hasCamera === null && (
                 <div className="webcam-loading-indicator">
                   <span>🌸</span> CONNECTING WEBCAM...
@@ -1044,7 +1501,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* Magical Heart Sparkles overlay on capture */}
+              {/* Magical Heart Sparkles on capture */}
               {isFlashActive && (
                 <div className="heart-burst-container">
                   {[...Array(15)].map((_, i) => {
@@ -1054,7 +1511,6 @@ export default function App() {
                     const delay = Math.random() * 0.15;
                     const duration = Math.random() * 0.35 + 0.4;
                     const angle = (Math.random() - 0.5) * 60;
-                    // Interleave hearts and sparkles
                     const symbol = i % 3 === 0 ? '❤️' : i % 3 === 1 ? '🌸' : '✨';
                     return (
                       <span 
@@ -1093,7 +1549,15 @@ export default function App() {
                   {pieces.map((piece) => (
                     <div
                       key={piece.id}
-                      className="puzzle-piece"
+                      className={`puzzle-piece ${draggedPieceId === piece.id ? 'active-dragging' : ''}`}
+                      onMouseDown={(e) => {
+                        if (puzzleMode === 'manual') handlePieceStartDrag(piece.id, e.clientX, e.clientY);
+                      }}
+                      onTouchStart={(e) => {
+                        if (puzzleMode === 'manual' && e.touches[0]) {
+                          handlePieceStartDrag(piece.id, e.touches[0].clientX, e.touches[0].clientY);
+                        }
+                      }}
                       style={{
                         backgroundImage: `url(${capturedImage})`,
                         backgroundSize: '480px 360px',
@@ -1103,14 +1567,35 @@ export default function App() {
                         transform: piece.isSnapped
                           ? 'translate(0px, 0px) rotate(0deg) scale(1)'
                           : `translate(${piece.scatteredX}px, ${piece.scatteredY}px) rotate(${piece.scatteredRotation}deg) scale(0.95)`,
-                        opacity: piece.isSnapped ? 1 : 0,
+                        opacity: piece.isSnapped ? 1 : 0.85,
+                        cursor: piece.isSnapped ? 'default' : (puzzleMode === 'manual' ? 'grab' : 'default'),
+                        touchAction: 'none'
                       }}
                     />
+                  ))}
+
+                  {/* Local single piece snapping arpeggio sparkles explosion */}
+                  {localSparkles.map(s => (
+                    <span
+                      key={s.id}
+                      className="local-sparkle-particle"
+                      style={{
+                        left: `${s.x}px`,
+                        top: `${s.y}px`,
+                        fontSize: `${s.size}px`,
+                        transform: 'translate(-50%, -50%)',
+                        animation: 'particle-explode 0.8s ease-out forwards',
+                        '--dx': `${s.dx}px`,
+                        '--dy': `${s.dy}px`
+                      }}
+                    >
+                      {s.symbol}
+                    </span>
                   ))}
                 </div>
               )}
 
-              {/* Puzzle Completed stamp badge overlay */}
+              {/* Puzzle Completed stamp overlay */}
               {isComplete && !isFlying && (
                 <div className="puzzle-complete-overlay">
                   <div className="puzzle-complete-stamp">Puzzle Complete 💖</div>
@@ -1123,10 +1608,34 @@ export default function App() {
           <div className="stage-controls">
             {isPuzzlePhase && !isComplete && (
               <div className="counter-badge">
-                {snappedCount} / 9 PIECES SNAPPED
+                {puzzleMode === 'manual' ? (
+                  <span>🧩 {snappedCount} / 9 SOLVED • ⏱ {solvingTimer}s</span>
+                ) : (
+                  <span>🌸 {snappedCount} / 9 PIECES SNAPPED</span>
+                )}
               </div>
             )}
             
+            {/* Mode selection buttons */}
+            {!isPuzzlePhase && (
+              <div className="mode-selector">
+                <button 
+                  className={`mode-btn ${puzzleMode === 'auto' ? 'active' : ''}`}
+                  onClick={() => setPuzzleMode('auto')}
+                  disabled={countdown !== null}
+                >
+                  🌸 Auto-Snap
+                </button>
+                <button 
+                  className={`mode-btn ${puzzleMode === 'manual' ? 'active' : ''}`}
+                  onClick={() => setPuzzleMode('manual')}
+                  disabled={countdown !== null}
+                >
+                  🧩 Play Puzzle
+                </button>
+              </div>
+            )}
+
             {!isPuzzlePhase && (
               <button
                 className="capture-btn"
@@ -1139,7 +1648,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* Right Side: Girly Coded Film Strip */}
+        {/* Right Side: Retro Film Strip */}
         <section className="film-strip-panel">
           <div className="film-strip-wrapper">
             <div className="film-strip-torn-top" />
@@ -1160,22 +1669,25 @@ export default function App() {
                     {photo ? (
                       <>
                         <div 
-                          className="polaroid-card"
+                          className="polaroid-card clickable-card"
+                          onClick={() => openCaptionEditor(index)}
+                          title="Click to write custom caption! 📝🎀"
                           style={{ 
                             transform: `rotate(${photo.rotation}deg) translate(${photo.offsetX || 0}px, ${photo.offsetY || 0}px)` 
                           }}
                         >
-                          {/* Washi Tapes sticking corners */}
                           <div className="washi-tape-tl" />
                           <div className="washi-tape-br" />
 
                           <div className="polaroid-image-container">
                             <img src={photo.src} className="polaroid-img" alt={`Strip Shot #${index + 1}`} />
                           </div>
-                          <div className="polaroid-handwritten-label">#{index + 1}</div>
+                          <div className="polaroid-handwritten-label">
+                            {photo.customCaption ? photo.customCaption.substring(0, 14) : `#${index + 1}`}
+                          </div>
                         </div>
                         <div className="polaroid-caption">
-                          Shot #{index + 1} • {photo.date} {photo.sender && `(${photo.sender})`}
+                          {photo.customCaption || `Shot #${index + 1} • ${photo.date}`} {photo.sender && `(${photo.sender})`}
                         </div>
                       </>
                     ) : (
